@@ -189,12 +189,22 @@ function confirmEmployee(id) {
   const script =
     document.createElement("script");
 
+// iPadの今日の日付を取得
+  const now = new Date();
+
+  const dateText =
+    now.getFullYear() + "-" +
+    String(now.getMonth() + 1).padStart(2, "0") + "-" +
+    String(now.getDate()).padStart(2, "0");
+
 
   script.src =
     APPS_SCRIPT_URL +
     "?action=attendance" +
     "&employeeId=" +
     encodeURIComponent(id) +
+    "&date=" +
+    encodeURIComponent(dateText) +
     "&callback=" +
     callbackName;
 

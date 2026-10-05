@@ -142,12 +142,64 @@ function onScanSuccess(decodedText) {
 function confirmEmployee(id) {
 
   document.getElementById("result").innerHTML =
-    "<p>確認しました。</p>" +
-    "<p>次に出勤記録を追加します。</p>";
+    "<p>出勤を記録しています…</p>";
 
-  // ★ここは次の段階で
-  // Googleスプレッドシートへの
-  // チェック処理を追加します。
+
+  // Apps Scriptへ出席登録を依頼
+  const callbackName =
+    "attendanceCallback_" + Date.now();
+
+
+  window[callbackName] = function(result) {
+
+    delete window[callbackName];
+
+
+    // エラーの場合
+    if (!result.ok) {
+
+      document.getElementById("result").innerHTML =
+        '<p class="error">' +
+        result.message +
+        '</p>' +
+
+        '<button onclick="location.reload()">' +
+        'もう一度読み取る' +
+        '</button>';
+
+      return;
+    }
+
+
+    // 登録成功
+    document.getElementById("result").innerHTML =
+
+      "<h2>✓ 出勤を記録しました</h2>" +
+
+      "<p>" +
+      result.name +
+      " さん</p>" +
+
+      '<button onclick="location.reload()">' +
+      "次の人" +
+      "</button>";
+  };
+
+
+  const script =
+    document.createElement("script");
+
+
+  script.src =
+    APPS_SCRIPT_URL +
+    "?action=attendance" +
+    "&employeeId=" +
+    encodeURIComponent(id) +
+    "&callback=" +
+    callbackName;
+
+
+  document.body.appendChild(script);
 }
 
 

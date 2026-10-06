@@ -214,46 +214,39 @@ function nextEmployee() {
     "<p>次の方のQRコードを読み取ってください</p>";
 }
 
-
 // =========================
-// カメラ起動テスト
+// QRスキャナー開始
 // =========================
 
-const video =
-  document.createElement("video");
+const scanner =
+  new Html5Qrcode("reader");
 
-video.autoplay = true;
-video.playsInline = true;
-video.style.width = "100%";
-video.style.maxWidth = "500px";
-
-document.getElementById("reader")
-  .appendChild(video);
-
-
-navigator.mediaDevices.getUserMedia({
-  video: {
+scanner.start(
+  {
     facingMode: "user"
+  },
+  {
+    fps: 10,
+    qrbox: {
+      width: 250,
+      height: 250
+    }
+  },
+  onScanSuccess,
+  function(errorMessage) {
+    // 読み取り中のエラーは表示しない
   }
-})
-.then(function(stream) {
-
-  video.srcObject = stream;
-
-  document.getElementById("result").textContent =
-    "カメラ起動成功";
-
-})
+)
 .catch(function(error) {
 
   document.getElementById("result").innerHTML =
     '<p class="error">' +
-    error.name +
-    '<br>' +
-    error.message +
-    '</p>';
+    "QRスキャナーを起動できませんでした<br>" +
+    error +
+    "</p>";
 
 });
+
 
 </script>
 

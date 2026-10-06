@@ -235,6 +235,21 @@ scanner.render(
   }
 );
 
+// カメラボタンを日本語に変更
+setTimeout(function() {
+
+  const buttons = document.querySelectorAll("#reader button");
+
+  buttons.forEach(function(button) {
+
+    if (button.textContent.includes("Request Camera Permissions")) {
+      button.textContent = "カメラを起動";
+    }
+
+  });
+
+}, 500);
+
 </script>
 
 </body>

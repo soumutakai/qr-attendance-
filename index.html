@@ -13,6 +13,7 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
+      margin: 0;
     }
 
     h1 {
@@ -20,8 +21,47 @@
     }
 
     #reader {
-      max-width: 500px;
+      width: 90vw;
+      max-width: 700px;
       margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* カメラ映像 */
+    #reader video {
+      width: 100% !important;
+      height: auto !important;
+      display: block;
+    }
+
+    /*
+      QRコードを合わせる四角い枠
+      縦向き・横向きの両方に対応
+    */
+    #scan-frame {
+      position: absolute;
+      width: min(60vw, 60vh, 300px);
+      height: min(60vw, 60vh, 300px);
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      border: 5px solid white;
+      border-radius: 8px;
+
+      box-sizing: border-box;
+
+      pointer-events: none;
+
+      z-index: 10;
+
+      /* 見やすくするため少し影をつける */
+      box-shadow:
+        0 0 0 2px rgba(0, 0, 0, 0.35),
+        0 0 15px rgba(0, 0, 0, 0.4);
     }
 
     #result {
@@ -40,6 +80,23 @@
     .error {
       color: red;
     }
+
+    /* 横向きのとき */
+    @media (orientation: landscape) {
+      #reader {
+        width: 75vw;
+        max-width: 800px;
+      }
+
+      h1 {
+        font-size: 28px;
+        margin: 10px;
+      }
+
+      #result {
+        margin-top: 15px;
+      }
+    }
   </style>
 </head>
 
@@ -47,16 +104,18 @@
 
 <h1>社員受付</h1>
 
-<p>QRコードをカメラに映してください</p>
+<p>QRコードをカメラの四角い枠に合わせてください</p>
 
-<div id="reader"></div>
+<div id="reader">
+  <div id="scan-frame"></div>
+</div>
 
 <div id="result"></div>
 
 <script>
 
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbx0Yhbu42o5JXZ91oB_TdQxb6ljHvoc6tIIo2LiPIKrEyV67dsBmrdr0thm9aainFPM/exec";
+  "https://script.google.com/macros/s/AKfycbx0Yhbu42o5JXZ91oB_TDqxb6ljHvoc6tIIo2LiPIKrEyV67dsBmrdr0thm9aainFPM/exec";
 
 let processing = false;
 
@@ -214,6 +273,7 @@ function nextEmployee() {
     "<p>次の方のQRコードを読み取ってください</p>";
 }
 
+
 // =========================
 // QRスキャナー開始
 // =========================
@@ -227,9 +287,21 @@ scanner.start(
   },
   {
     fps: 10,
-    qrbox: {
-      width: 250,
-      height: 250
+
+    qrbox: function(viewfinderWidth, viewfinderHeight) {
+
+      const size =
+        Math.floor(
+          Math.min(
+            viewfinderWidth,
+            viewfinderHeight
+          ) * 0.6
+        );
+
+      return {
+        width: size,
+        height: size
+      };
     }
   },
   onScanSuccess,
@@ -246,7 +318,6 @@ scanner.start(
     "</p>";
 
 });
-
 
 </script>
 

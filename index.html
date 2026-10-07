@@ -28,6 +28,7 @@
       margin-top: 25px;
       font-size: 24px;
       font-weight: bold;
+      min-height: 80px;
     }
 
     button {
@@ -40,6 +41,10 @@
     .error {
       color: red;
     }
+
+    .success {
+      color: green;
+    }
   </style>
 </head>
 
@@ -51,30 +56,48 @@
 
 <div id="reader"></div>
 
-<div id="result"></div>
+<div id="result">
+  <p>QRコードを読み取ってください</p>
+</div>
+
 
 <script>
 
+// ========================================
+// Apps ScriptのURL
+// ========================================
+
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbx0Yhbu42o5JXZ91oB_TdQxb6ljHvoc6tIIo2LiPIKrEyV67dsBmrdr0thm9aainFPM/exec";
+  "https://script.google.com/macros/s/AKfycbx0Yhbu42o5JXZ91oB_TDqxb6ljHvoc6tIIo2LiPIKrEyV67dsBmrdr0thm9aainFPM/exec";
+
+
+// ========================================
+// 処理中かどうか
+// ========================================
 
 let processing = false;
 
 
-// =========================
+// ========================================
 // QRコードを読み取ったとき
-// =========================
+// ========================================
 
 function onScanSuccess(decodedText) {
 
+  // すでに処理中なら無視
   if (processing) {
     return;
   }
 
   processing = true;
 
-  document.getElementById("result").textContent =
-    "社員を確認しています…";
+  document.getElementById("result").innerHTML =
+    "<p>社員を確認しています…</p>";
+
+
+  // ======================================
+  // Apps Scriptから社員情報を受け取る
+  // ======================================
 
   const callbackName =
     "employeeCallback_" + Date.now();
@@ -82,6 +105,11 @@ function onScanSuccess(decodedText) {
   window[callbackName] = function(employee) {
 
     delete window[callbackName];
+
+
+    // --------------------------------------
+    // 社員が見つからなかった場合
+    // --------------------------------------
 
     if (!employee.ok) {
 
@@ -98,6 +126,11 @@ function onScanSuccess(decodedText) {
 
       return;
     }
+
+
+    // --------------------------------------
+    // 社員名を表示
+    // --------------------------------------
 
     document.getElementById("result").innerHTML =
 
@@ -118,6 +151,11 @@ function onScanSuccess(decodedText) {
       "</button>";
   };
 
+
+  // ======================================
+  // Apps Scriptへ社員照会
+  // ======================================
+
   const script =
     document.createElement("script");
 
@@ -133,14 +171,31 @@ function onScanSuccess(decodedText) {
 }
 
 
-// =========================
-// 本人ですを押したとき
-// =========================
+// ========================================
+// 「本人です」を押したとき
+// ========================================
 
 function confirmEmployee(id) {
 
   document.getElementById("result").innerHTML =
     "<p>出勤を記録しています…</p>";
+
+
+  // ======================================
+  // 今日の日付を取得
+  // ======================================
+
+  const now = new Date();
+
+  const dateText =
+    now.getFullYear() + "-" +
+    String(now.getMonth() + 1).padStart(2, "0") + "-" +
+    String(now.getDate()).padStart(2, "0");
+
+
+  // ======================================
+  // Apps Scriptから結果を受け取る
+  // ======================================
 
   const callbackName =
     "attendanceCallback_" + Date.now();
@@ -148,6 +203,11 @@ function confirmEmployee(id) {
   window[callbackName] = function(result) {
 
     delete window[callbackName];
+
+
+    // --------------------------------------
+    // エラー
+    // --------------------------------------
 
     if (!result.ok) {
 
@@ -163,30 +223,39 @@ function confirmEmployee(id) {
       return;
     }
 
+
+    // --------------------------------------
+    // 出勤成功
+    // --------------------------------------
+
     document.getElementById("result").innerHTML =
 
-      "<h2>✓ 出勤を記録しました</h2>" +
-
-      "<p>" +
+      '<h2 class="success">✓ ' +
       result.name +
-      " さん</p>" +
+      ' さん</h2>' +
 
-      '<button onclick="nextEmployee()">' +
-      "次の人" +
-      "</button>";
+      "<p>出勤を記録しました</p>";
+
+
+    // ======================================
+    // 0.5秒後に自動的に次の人へ
+    // ======================================
+
+    setTimeout(function() {
+
+      nextEmployee();
+
+    }, 500);
+
   };
+
+
+  // ======================================
+  // Apps Scriptへ出勤記録
+  // ======================================
 
   const script =
     document.createElement("script");
-
-  // iPadの今日の日付
-
-  const now = new Date();
-
-  const dateText =
-    now.getFullYear() + "-" +
-    String(now.getMonth() + 1).padStart(2, "0") + "-" +
-    String(now.getDate()).padStart(2, "0");
 
   script.src =
     APPS_SCRIPT_URL +
@@ -202,9 +271,9 @@ function confirmEmployee(id) {
 }
 
 
-// =========================
+// ========================================
 // 次の人へ
-// =========================
+// ========================================
 
 function nextEmployee() {
 
@@ -215,35 +284,47 @@ function nextEmployee() {
 }
 
 
-// =========================
+// ========================================
 // QRスキャナー開始
-// =========================
+// ========================================
 
 const scanner =
   new Html5Qrcode("reader");
 
+
 scanner.start(
+
   {
     facingMode: "user"
   },
+
   {
     fps: 10,
+
     qrbox: {
       width: 250,
       height: 250
     }
   },
+
   onScanSuccess,
+
   function(errorMessage) {
     // 読み取り中のエラーは表示しない
   }
+
 )
+
 .catch(function(error) {
 
   document.getElementById("result").innerHTML =
+
     '<p class="error">' +
+
     "QRスキャナーを起動できませんでした<br>" +
+
     error +
+
     "</p>";
 
 });
@@ -251,4 +332,3 @@ scanner.start(
 </script>
 
 </body>
-</html>

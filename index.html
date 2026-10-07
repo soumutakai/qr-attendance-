@@ -100,6 +100,126 @@ let processing = false;
 
 
 // ==================================================
+// 成功音用
+// ==================================================
+
+let audioContext = null;
+
+
+// ==================================================
+// 成功音の準備
+// ==================================================
+
+function prepareSuccessSound() {
+
+  try {
+
+    if (!audioContext) {
+
+      audioContext =
+        new (
+          window.AudioContext ||
+          window.webkitAudioContext
+        )();
+
+    }
+
+    if (audioContext.state === "suspended") {
+
+      audioContext.resume();
+
+    }
+
+  } catch (error) {
+
+    console.log(
+      "音声準備エラー",
+      error
+    );
+
+  }
+
+}
+
+
+// ==================================================
+// 成功音を鳴らす
+// ==================================================
+
+function playSuccessSound() {
+
+  try {
+
+    if (!audioContext) {
+      return;
+    }
+
+
+    if (audioContext.state === "suspended") {
+
+      audioContext.resume();
+
+    }
+
+
+    const oscillator =
+      audioContext.createOscillator();
+
+
+    const gainNode =
+      audioContext.createGain();
+
+
+    oscillator.connect(gainNode);
+
+    gainNode.connect(
+      audioContext.destination
+    );
+
+
+    // =================================================
+    // 音の設定
+    // =================================================
+
+    oscillator.type = "sine";
+
+    oscillator.frequency.value = 880;
+
+
+    gainNode.gain.setValueAtTime(
+      0.15,
+      audioContext.currentTime
+    );
+
+
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioContext.currentTime + 0.25
+    );
+
+
+    oscillator.start();
+
+
+    oscillator.stop(
+      audioContext.currentTime + 0.25
+    );
+
+
+  } catch (error) {
+
+    console.log(
+      "成功音エラー",
+      error
+    );
+
+  }
+
+}
+
+
+
+// ==================================================
 // 社員マスタを最初に読み込む
 // ==================================================
 
@@ -107,6 +227,7 @@ async function loadEmployees() {
 
   const status =
     document.getElementById("status");
+
 
   status.textContent =
     "社員データを読み込んでいます…";
@@ -185,6 +306,7 @@ async function loadEmployees() {
 
 
     document.getElementById("result").innerHTML =
+
       '<button onclick="loadEmployees()">' +
       "再読み込み" +
       "</button>";
@@ -206,17 +328,21 @@ function onScanSuccess(decodedText) {
   }
 
 
+  // =================================================
   // 社員データがまだ読み込めていない場合
+  // =================================================
 
   if (employees.length === 0) {
 
     document.getElementById("result").innerHTML =
+
       '<p class="error">' +
       "社員データを読み込んでいます。<br>" +
       "少し待ってください。" +
       "</p>";
 
     return;
+
   }
 
 
@@ -245,6 +371,7 @@ function onScanSuccess(decodedText) {
           .replace(/\s/g, "")
           .trim();
 
+
       return token === searchToken;
 
     });
@@ -266,9 +393,12 @@ function onScanSuccess(decodedText) {
       "もう一度読み取る" +
       "</button>";
 
+
     processing = false;
 
+
     return;
+
   }
 
 
@@ -304,6 +434,18 @@ function onScanSuccess(decodedText) {
 
 function confirmEmployee(id) {
 
+
+  // =================================================
+  // iPadのボタン操作中に音声再生の準備
+  // =================================================
+
+  prepareSuccessSound();
+
+
+  // =================================================
+  // 記録中表示
+  // =================================================
+
   document.getElementById("result").innerHTML =
     "<p>出勤を記録しています…</p>";
 
@@ -333,14 +475,20 @@ function confirmEmployee(id) {
   // =================================================
 
   const callbackName =
-    "attendanceCallback_" + Date.now();
+    "attendanceCallback_" +
+    Date.now();
 
 
   window[callbackName] =
     function(result) {
 
+
       delete window[callbackName];
 
+
+      // =================================================
+      // エラー
+      // =================================================
 
       if (!result.ok) {
 
@@ -354,9 +502,15 @@ function confirmEmployee(id) {
           "もう一度読み取る" +
           "</button>";
 
+
         return;
+
       }
 
+
+      // =================================================
+      // 成功表示
+      // =================================================
 
       document.getElementById("result").innerHTML =
 
@@ -369,6 +523,17 @@ function confirmEmployee(id) {
         "<p>出勤を記録しました</p>";
 
 
+      // =================================================
+      // 成功音
+      // =================================================
+
+      playSuccessSound();
+
+
+      // =================================================
+      // 次の人
+      // =================================================
+
       setTimeout(function() {
 
         nextEmployee();
@@ -377,6 +542,10 @@ function confirmEmployee(id) {
 
     };
 
+
+  // =================================================
+  // Apps Scriptへ出勤記録
+  // =================================================
 
   const script =
     document.createElement("script");
@@ -443,7 +612,9 @@ scanner.start(
   onScanSuccess,
 
   function(errorMessage) {
+
     // 読み取り中のエラーは表示しない
+
   }
 
 )

@@ -339,27 +339,33 @@
       // -------------------------------------------------------
 
       script.onerror =
-        function() {
+  function() {
 
-          delete window[callbackName];
+    delete window[callbackName];
 
-          currentEmployee = null;
+    currentEmployee = null;
 
-          document.getElementById("status").innerHTML =
-            '<span class="error">' +
-            "社員確認に失敗しました" +
-            "</span>";
+    console.log(
+      "Apps Script通信エラーURL:",
+      script.src
+    );
 
-          document.getElementById("result").innerHTML =
-            '<p class="error">' +
-            "Apps Scriptとの通信に失敗しました。" +
-            "</p>" +
+    document.getElementById("status").innerHTML =
+      '<span class="error">' +
+      "社員確認に失敗しました" +
+      "</span>";
 
-            '<button onclick="nextEmployee()">' +
-            "戻る" +
-            "</button>";
+    document.getElementById("result").innerHTML =
+      '<p class="error">' +
+      "Apps Scriptとの通信に失敗しました。<br>" +
+      "もう一度QRコードを読み取ってください。" +
+      "</p>" +
 
-        };
+      '<button onclick="nextEmployee()">' +
+      "戻る" +
+      "</button>";
+
+  };
 
 
       document.body.appendChild(script);

@@ -83,13 +83,13 @@
   <h1>社員受付</h1>
 
   <div id="status">
-    社員データを読み込んでいます…
+    受付を準備しています…
   </div>
 
   <div id="reader"></div>
 
   <div id="result">
-    <p>準備中です</p>
+    <p>QRコードを読み取ってください</p>
   </div>
 
 
@@ -107,8 +107,9 @@
     // グローバル変数
     // =========================================================
 
-    let employees = [];
     let processing = false;
+
+    let currentEmployee = null;
 
     let audioContext = null;
 
@@ -118,11 +119,13 @@
     // =========================================================
 
     function prepareSuccessSound() {
+
       try {
 
         if (!audioContext) {
           audioContext =
-            new (window.AudioContext || window.webkitAudioContext)();
+            new (window.AudioContext ||
+                 window.webkitAudioContext)();
         }
 
         if (audioContext.state === "suspended") {
@@ -130,13 +133,16 @@
         }
 
       } catch (error) {
+
         console.log("音声準備エラー", error);
+
       }
+
     }
 
 
     // =========================================================
-    // 成功音
+    // 成功音「キーン♪」
     // =========================================================
 
     function playSuccessSound() {
@@ -149,7 +155,8 @@
           audioContext.resume();
         }
 
-        const now = audioContext.currentTime;
+        const now =
+          audioContext.currentTime;
 
         const oscillator =
           audioContext.createOscillator();
@@ -158,11 +165,13 @@
           audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+
+        gainNode.connect(
+          audioContext.destination
+        );
 
         oscillator.type = "sine";
 
-        // キーン♪
         oscillator.frequency.value = 1200;
 
         gainNode.gain.setValueAtTime(
@@ -182,142 +191,18 @@
 
         oscillator.start(now);
 
-        oscillator.stop(now + 0.35);
+        oscillator.stop(
+          now + 0.35
+        );
 
       } catch (error) {
 
-        console.log("成功音エラー", error);
+        console.log(
+          "成功音エラー",
+          error
+        );
 
       }
-
-    }
-
-
-    // =========================================================
-    // 社員データ読み込み
-    // JSONP方式
-    // =========================================================
-
-    function loadEmployees() {
-
-      const status =
-        document.getElementById("status");
-
-      status.textContent =
-        "社員データを読み込んでいます…";
-
-
-      const callbackName =
-        "employeesCallback_" + Date.now();
-
-
-      window[callbackName] =
-        function(result) {
-
-          delete window[callbackName];
-
-
-          // -----------------------------
-          // エラー
-          // -----------------------------
-
-          if (!result.ok) {
-
-            status.innerHTML =
-              '<span class="error">' +
-              "社員データの読み込みに失敗しました<br>" +
-              (result.message ||
-                "社員データを取得できませんでした。") +
-              "</span>";
-
-
-            document.getElementById("result").innerHTML =
-              '<button onclick="loadEmployees()">' +
-              "再読み込み" +
-              "</button>";
-
-            return;
-          }
-
-
-          // -----------------------------
-          // 社員データ取得成功
-          // -----------------------------
-
-          employees =
-            result.employees || [];
-
-
-          // -----------------------------
-          // 0人
-          // -----------------------------
-
-          if (employees.length === 0) {
-
-            status.innerHTML =
-              '<span class="error">' +
-              "社員データが0人です。" +
-              "</span>";
-
-            return;
-          }
-
-
-          // -----------------------------
-          // 正常
-          // -----------------------------
-
-          status.innerHTML =
-            '<span class="ready">' +
-            "受付準備完了（" +
-            employees.length +
-            "人）" +
-            "</span>";
-
-
-          document.getElementById("result").innerHTML =
-            "<p>QRコードを読み取ってください</p>";
-
-        };
-
-
-      // =======================================================
-      // JSONP用scriptタグ
-      // =======================================================
-
-      const script =
-        document.createElement("script");
-
-
-      script.src =
-        APPS_SCRIPT_URL +
-        "?action=employees" +
-        "&callback=" +
-        callbackName +
-        "&t=" +
-        Date.now();
-
-
-      script.onerror =
-        function() {
-
-          delete window[callbackName];
-
-          status.innerHTML =
-            '<span class="error">' +
-            "社員データの読み込みに失敗しました。" +
-            "</span>";
-
-
-          document.getElementById("result").innerHTML =
-            '<button onclick="loadEmployees()">' +
-            "再読み込み" +
-            "</button>";
-
-        };
-
-
-      document.body.appendChild(script);
 
     }
 
@@ -332,10 +217,10 @@
         return;
       }
 
-
       processing = true;
 
 
+      // QRコードの中身
       const token =
         String(decodedText || "")
           .replace(/\s/g, "")
@@ -343,66 +228,141 @@
 
 
       // -------------------------------------------------------
-      // 社員マスタから検索
+      // 表示
       // -------------------------------------------------------
 
-      const employee =
-        employees.find(function(row) {
-
-          return String(row.token)
-            .replace(/\s/g, "")
-            .trim() === token;
-
-        });
-
-
-      // -------------------------------------------------------
-      // 登録されていないQR
-      // -------------------------------------------------------
-
-      if (!employee) {
-
-        document.getElementById("result").innerHTML =
-          '<p class="error">' +
-          "登録されていないQRコードです。" +
-          "</p>";
-
-
-        setTimeout(function() {
-
-          processing = false;
-
-          document.getElementById("result").innerHTML =
-            "<p>QRコードを読み取ってください</p>";
-
-        }, 2000);
-
-
-        return;
-      }
-
-
-      // -------------------------------------------------------
-      // 社員名表示
-      // -------------------------------------------------------
+      document.getElementById("status").innerHTML =
+        '<span>社員を確認しています…</span>';
 
       document.getElementById("result").innerHTML =
+        "<p>社員情報を確認しています。<br>少しお待ちください。</p>";
 
-        '<div class="employee-name">' +
-        employee.name +
-        " さん</div>" +
 
-        "<p>この社員で間違いありませんか？</p>" +
+      // -------------------------------------------------------
+      // Apps ScriptへQR用IDを送る
+      // -------------------------------------------------------
 
-        '<button onclick="confirmEmployee(\'' +
-        employee.id +
-        "')\">" +
-        "本人です" +
-        "</button>" +
+      const callbackName =
+        "lookupCallback_" +
+        Date.now();
 
-        '<button onclick="nextEmployee()">' +
-        "キャンセル" +
-        "</button>";
+
+      window[callbackName] =
+        function(result) {
+
+          delete window[callbackName];
+
+
+          // ---------------------------------------------------
+          // 社員検索エラー
+          // ---------------------------------------------------
+
+          if (!result.ok) {
+
+            currentEmployee = null;
+
+            document.getElementById("status").innerHTML =
+              '<span class="error">' +
+              "社員確認に失敗しました" +
+              "</span>";
+
+            document.getElementById("result").innerHTML =
+              '<p class="error">' +
+              (result.message ||
+               "登録されていないQRコードです。") +
+              "</p>" +
+
+              '<button onclick="nextEmployee()">' +
+              "戻る" +
+              "</button>";
+
+            return;
+          }
+
+
+          // ---------------------------------------------------
+          // 社員確認成功
+          // ---------------------------------------------------
+
+          currentEmployee = {
+            id: result.id,
+            name: result.name
+          };
+
+
+          document.getElementById("status").innerHTML =
+            '<span class="ready">' +
+            "社員を確認しました" +
+            "</span>";
+
+
+          document.getElementById("result").innerHTML =
+
+            '<div class="employee-name">' +
+            result.name +
+            " さん</div>" +
+
+            "<p>この社員で間違いありませんか？</p>" +
+
+            '<button onclick="confirmEmployee()">' +
+            "本人です" +
+            "</button>" +
+
+            '<button onclick="nextEmployee()">' +
+            "キャンセル" +
+            "</button>";
+
+        };
+
+
+      // -------------------------------------------------------
+      // JSONP
+      // -------------------------------------------------------
+
+      const script =
+        document.createElement("script");
+
+
+      script.src =
+        APPS_SCRIPT_URL +
+        "?action=lookup" +
+        "&token=" +
+        encodeURIComponent(token) +
+        "&callback=" +
+        callbackName +
+        "&t=" +
+        Date.now();
+
+
+      // -------------------------------------------------------
+      // 通信エラー
+      // -------------------------------------------------------
+
+      script.onerror =
+        function() {
+
+          delete window[callbackName];
+
+          currentEmployee = null;
+
+          document.getElementById("status").innerHTML =
+            '<span class="error">' +
+            "社員確認に失敗しました" +
+            "</span>";
+
+          document.getElementById("result").innerHTML =
+            '<p class="error">' +
+            "Apps Scriptとの通信に失敗しました。" +
+            "</p>" +
+
+            '<button onclick="nextEmployee()">' +
+            "戻る" +
+            "</button>";
+
+        };
+
+
+      document.body.appendChild(script);
 
     }
 
@@ -411,18 +371,38 @@
     // 本人確認 → 出勤記録
     // =========================================================
 
-    function confirmEmployee(id) {
+    function confirmEmployee() {
 
-      // iPadの音声再生許可を取る
+      if (!currentEmployee) {
+
+        document.getElementById("result").innerHTML =
+          '<p class="error">' +
+          "社員情報がありません。" +
+          "</p>";
+
+        return;
+      }
+
+
+      // iPadの音声再生準備
       prepareSuccessSound();
 
 
       document.getElementById("result").innerHTML =
-        "<p>記録しています…</p>";
+        "<p>出勤を記録しています…</p>";
 
+
+      document.getElementById("status").innerHTML =
+        "<span>記録中…</span>";
+
+
+      // -------------------------------------------------------
+      // JSONPコールバック
+      // -------------------------------------------------------
 
       const callbackName =
-        "attendanceCallback_" + Date.now();
+        "attendanceCallback_" +
+        Date.now();
 
 
       window[callbackName] =
@@ -437,11 +417,15 @@
 
           if (!result.ok) {
 
+            document.getElementById("status").innerHTML =
+              '<span class="error">' +
+              "出勤記録に失敗しました" +
+              "</span>";
+
             document.getElementById("result").innerHTML =
               '<p class="error">' +
-              "出勤記録に失敗しました<br>" +
               (result.message ||
-                "エラーが発生しました。") +
+               "出勤記録に失敗しました。") +
               "</p>" +
 
               '<button onclick="nextEmployee()">' +
@@ -455,6 +439,12 @@
           // ---------------------------------------------------
           // 成功
           // ---------------------------------------------------
+
+          document.getElementById("status").innerHTML =
+            '<span class="ready">' +
+            "受付完了" +
+            "</span>";
+
 
           document.getElementById("result").innerHTML =
 
@@ -473,12 +463,15 @@
           playSuccessSound();
 
 
-          // 少し表示してから次の社員へ
-          setTimeout(function() {
+          // 1秒後に次の社員
+          setTimeout(
+            function() {
 
-            nextEmployee();
+              nextEmployee();
 
-          }, 1000);
+            },
+            1000
+          );
 
         };
 
@@ -496,17 +489,23 @@
 
 
       const mm =
-        String(today.getMonth() + 1)
-          .padStart(2, "0");
+        String(
+          today.getMonth() + 1
+        ).padStart(2, "0");
 
 
       const dd =
-        String(today.getDate())
-          .padStart(2, "0");
+        String(
+          today.getDate()
+        ).padStart(2, "0");
 
 
       const dateString =
-        yyyy + "-" + mm + "-" + dd;
+        yyyy +
+        "-" +
+        mm +
+        "-" +
+        dd;
 
 
       // =======================================================
@@ -521,23 +520,36 @@
         APPS_SCRIPT_URL +
         "?action=attendance" +
         "&employeeId=" +
-        encodeURIComponent(id) +
+        encodeURIComponent(
+          currentEmployee.id
+        ) +
         "&date=" +
-        encodeURIComponent(dateString) +
+        encodeURIComponent(
+          dateString
+        ) +
         "&callback=" +
         callbackName +
         "&t=" +
         Date.now();
 
 
+      // -------------------------------------------------------
+      // 通信エラー
+      // -------------------------------------------------------
+
       script.onerror =
         function() {
 
           delete window[callbackName];
 
+          document.getElementById("status").innerHTML =
+            '<span class="error">' +
+            "通信エラー" +
+            "</span>";
+
           document.getElementById("result").innerHTML =
             '<p class="error">' +
-            "出勤記録に失敗しました。" +
+            "出勤記録の通信に失敗しました。" +
             "</p>" +
 
             '<button onclick="nextEmployee()">' +
@@ -560,6 +572,14 @@
 
       processing = false;
 
+      currentEmployee = null;
+
+
+      document.getElementById("status").innerHTML =
+        '<span class="ready">' +
+        "受付準備完了" +
+        "</span>";
+
 
       document.getElementById("result").innerHTML =
         "<p>QRコードを読み取ってください</p>";
@@ -579,7 +599,7 @@
 
       scanner.start(
 
-        // iPadのフロントカメラ
+        // iPadフロントカメラ
         {
           facingMode: "user"
         },
@@ -600,15 +620,17 @@
           // 読み取り中の細かいエラーは無視
         }
 
-      ).catch(function(error) {
+      ).catch(
+        function(error) {
 
-        document.getElementById("status").innerHTML =
-          '<span class="error">' +
-          "カメラを起動できませんでした。<br>" +
-          error +
-          "</span>";
+          document.getElementById("status").innerHTML =
+            '<span class="error">' +
+            "カメラを起動できませんでした。<br>" +
+            error +
+            "</span>";
 
-      });
+        }
+      );
 
     }
 
@@ -621,8 +643,11 @@
       "load",
       function() {
 
-        // 社員データ取得
-        loadEmployees();
+        // 最初から受付可能
+        document.getElementById("status").innerHTML =
+          '<span class="ready">' +
+          "受付準備完了" +
+          "</span>";
 
 
         // カメラ起動
